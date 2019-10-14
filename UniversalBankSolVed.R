@@ -42,8 +42,8 @@ UBank_labels<-as.factor(UBank_labels)
 knn.pred <- knn(Train_Predictors,Val_Predictors,cl=Train_labels,k=1,prob = TRUE)
 knn.pred
 
-Q1 <- c(40, 10, 84, 2, 2, 0, 1, 0, 0, 0, 0, 1, 1)
-knn.pred1 <- knn(Train_Predictors, Q1, cl=Train_labels, k=1, prob = TRUE)
+Q1 <- data.frame(40, 10, 84, 2, 2, 0, 1, 0, 0, 0, 0, 1, 1)
+knn.pred1 <- knn(Train_Predictors, Q1, cl=Train_labels, k=1, prob = 0.5)
 knn.pred1
 
 #2.	What is a choice of k that balances between overfitting and ignoring the predictor information?
