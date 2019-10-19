@@ -1,0 +1,86 @@
+---
+title: "Naive_Bayes_FlightDelays"
+author: "Sumanth"
+date: "10/19/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+NB: Predicting Delayed Flights
+
+Predicting flight delays can be useful to a variety of organizations. Here,
+we look at five predictors. The outcome of interest is whether or not the flight is delayed (delayed here means
+arrived more than 15 minutes late). Our data consist of all flights from the Washington, DC area into the New York City area during January 2004. A record is a particular flight. The percentage of delayed flights among these 2201 flights
+is 19.5%. The data were obtained from the Bureau of Transportation Statistics (available on the web at www.transtats.bts.gov). The goal is to accurately predict whether or not a new flight (not in this dataset), will be delayed. The outcome variable is whether the flight was delayed, and thus it has two classes (1 = delayed
+and 0 = on time).
+
+```{r}
+library(e1071)
+getwd()
+FD <- read.csv("FlightDelays.csv")
+# change numerical variables to categorical first
+FD$DAY_WEEK <- factor(FD$DAY_WEEK)
+FD$DEP_TIME <- factor(FD$DEP_TIME)
+# create hourly bins departure time
+FD$CRS_DEP_TIME <- factor(round(FD$CRS_DEP_TIME/100))
+```
+
+1. Divide the data into 60% training and 40% validation
+
+```{r}
+library(ISLR)
+library(caret)
+# Create training and validation sets.
+FD_Pred <- FD[,c(10, 1, 8, 4, 2, 13)]
+train.index <- createDataPartition(FD_Pred$Flight.Status,p=0.6,list = FALSE)
+train.df <- FD_Pred[train.index, ]
+valid.df <- FD_Pred[-train.index, ]
+```
+
+2. Run the Naive Bayes model to predict whether the flight is delayed or not. Use only categorical variables for the predictor variables. Note that Week and Time variables need to recoded as factors
+
+```{r}
+
+# run naive bayes
+nb_delays <- naiveBayes(Flight.Status ~ ., data = train.df)
+head(nb_delays)
+
+```
+
+3. Output both a counts table and a proportion table outlining how many and what proportion of flights were delayed and on-time at each of the three airports.
+
+```{r}
+
+prop.table(table(train.df$Flight.Status, train.df$DEST), margin = 1)
+nb_pred <- predict(nb_delays, newdata = valid.df, type = "raw")
+head(nb_pred)
+
+
+## predict class membership
+pred_class <- predict(nb_delays, newdata = valid.df)
+df <- data.frame(actual = valid.df$Flight.Status, predicted = pred_class, nb_pred)
+
+```
+
+4. Output the confusion matrix and ROC for the validation data
+
+```{r}
+
+library(caret)
+# training
+pred_class1 <- predict(nb_delays, newdata = train.df)
+confusionMatrix(pred_class1, train.df$Flight.Status)
+# validation
+pred_class2 <- predict(nb_delays, newdata = valid.df)
+confusionMatrix(pred_class2, valid.df$Flight.Status)
+#AUC Value and ROC Curves III
+library(pROC)
+roc(valid.df$Flight.Status, nb_pred[,2])
+plot.roc(valid.df$Flight.Status, nb_pred[,2])
+
+```
+
+
