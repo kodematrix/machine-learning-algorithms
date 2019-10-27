@@ -55,6 +55,7 @@ head(nb_delays)
 ```{r}
 
 prop.table(table(train.df$Flight.Status, train.df$DEST), margin = 1)
+CrossTable(x=train.df$Flight.Status,y=train.df$DEST)
 nb_pred <- predict(nb_delays, newdata = valid.df, type = "raw")
 head(nb_pred)
 
