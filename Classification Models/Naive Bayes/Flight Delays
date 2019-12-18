@@ -1,0 +1,7 @@
+NB: Predicting Delayed Flights
+
+Predicting flight delays can be useful to a variety of organizations. Here,
+we look at five predictors. The outcome of interest is whether or not the flight is delayed (delayed here means
+arrived more than 15 minutes late). Our data consist of all flights from the Washington, DC area into the New York City area during January 2004. A record is a particular flight. The percentage of delayed flights among these 2201 flights
+is 19.5%. The data were obtained from the Bureau of Transportation Statistics (available on the web at www.transtats.bts.gov). The goal is to accurately predict whether or not a new flight (not in this dataset), will be delayed. The outcome variable is whether the flight was delayed, and thus it has two classes (1 = delayed
+and 0 = on time).
