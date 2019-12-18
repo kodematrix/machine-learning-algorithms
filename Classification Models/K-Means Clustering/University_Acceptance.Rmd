@@ -1,0 +1,193 @@
+---
+title: "K-means"
+author: "Sumanth"
+date: "10/29/2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+***
+
+# Performing K-Means 
+
+The dataset on American College and University Rankings contains information on 1302 American colleges and universities offering an undergraduate program
+
+
+```{r}
+library(tidyverse) 
+library(factoextra) 
+Universities<-read.csv("C:/Users/suman/Documents/Universities.csv") #Read The Data
+
+#a.Remove all records with missing measurements from the dataset.
+Universities_FR <- na.omit(Universities)
+
+#Assigning  All Continuous Variables to Univ_Continuous
+Univ_Countinuous<-Universities_FR[,4:20]
+
+#Normalize the measurements
+Univ_Countinuous<-scale(Univ_Countinuous)
+distance <- get_dist(Univ_Countinuous)
+fviz_dist(distance)
+```
+
+The above graph shows the distance between continuous variables. Let us now run the k-means algorithm to cluster the Universities. We will choose an initial value of k = 5.
+```{r}
+#b.K-Means clustering
+set.seed(123)
+k5 <- kmeans(Univ_Countinuous, centers =5 , nstart = 25) # k = 5, number of restarts = 25
+
+# Size and Center for the Clusters
+k5$centers 
+k5$size 
+fviz_cluster(k5, data = Univ_Countinuous) #Visualize cluster plot
+```
+
+***
+
+# Other Distances
+
+Let us now rerun the example using other distances
+```{r}
+library(flexclust)
+set.seed(123)
+#kmeans clustering, using manhattan distance
+k5_Manhattan = kcca(Univ_Countinuous, k=5, kccaFamily("kmedians"))
+k5_Manhattan
+```
+
+```{r}
+#Apply the predict() function to create cluster index for k=5
+clusters_index <- predict(k5_Manhattan)
+dist(k5_Manhattan@centers)
+image(k5_Manhattan)
+points(Univ_Countinuous, col=clusters_index, pch=19, cex=0.3)
+```
+
+***
+
+# Determining k
+
+we use an "elbow chart" ,"Silhouette Method" to determine k
+```{r}
+#Calculating our optimal K using Elbow chart , Silhouette Method
+set.seed(123)
+fviz_nbclust(Univ_Countinuous, kmeans, method = "wss")
+fviz_nbclust(Univ_Countinuous, kmeans, method = "silhouette")
+```
+The charts shows that the point 3 in elbow and Silhouette provides the best value for k. While WSS, Silhouette will continue to drop for larger values of k, we have to make the tradeoff between overfitting, i.e., a model fitting both noise and signal, to a model having bias. Here, the elbow point provides that compromise where WSS, while still decreasing beyond k = 3, decreases at a much smaller rate. In other words, adding more clusters beyond 3 brings less improvement to cluster homogeneity.
+
+
+```{r}
+k3 <- kmeans(Univ_Countinuous, centers = 3, nstart = 25)
+fviz_cluster(k3, data = Univ_Countinuous) #Visualize cluster plot
+
+#Creating the cluster index for 3 clusters
+set.seed(123)
+k3_Manhattan = kcca(Univ_Countinuous, k=3, kccaFamily("kmedians"))
+k3_Manhattan
+cluster_index_3 <- predict(k3_Manhattan)
+```
+
+
+```{r}
+#Merging the clusters to the original data frame
+set.seed(123)
+clusters123<- data.frame(cluster_index_3)
+Universities_FR <- cbind(Universities_FR, clusters123)
+head(Universities_FR)
+```
+***
+
+c.Compare the summary statistics for each cluster and describe each cluster in this context 
+
+```{r}
+#Summary Statistics for Each Cluster
+set.seed(123)
+
+Cluster_Stat <- Universities_FR %>% 
+    group_by( cluster_index_3 ) %>%
+    summarise( Univ_InState_Max_Fee=Universities_FR[which.max(in.state.tuition),1],Univ_OutState_Max_Fee=Universities_FR[which.max(out.of.state.tuition),1],low_accept_rate=Universities_FR[which.min(X..appl..accepted),1],Acceptance_rate = sum(X..appl..accepted)/ sum(X..appli..rec.d), Avg_out_state_tuition=mean(out.of.state.tuition), Avg_int_state_tuition=mean(in.state.tuition), mean_PHD_fac=mean(X..fac..w.PHD), mean_stud_fac_ratio=mean(stud..fac..ratio), mean_grad_rate=mean(Graduation.rate), priv_count = sum(Public..1...Private..2. == 2), pub_count = sum(Public..1...Private..2. == 1))
+head(Cluster_Stat)
+```
+***
+Here, i have summarized the clustered data according to states. This table explains abouts the statistical values like acceptance rate, mean graduation rate, maximum in.state and out.state universities etc.,.
+```{r}
+#Summary Statistics For States
+
+Stat_States<-Universities_FR %>% 
+             group_by(State) %>%        summarise(Univ_InState_Max_Fee=Universities_FR[which.max(in.state.tuition),1],Univ_OutState_Max_Fee=Universities_FR[which.max(out.of.state.tuition),1],low_accept_rate=Universities_FR[which.min(X..appl..accepted),1],Acceptance_rate = sum(X..appl..accepted)/ sum(X..appli..rec.d), Avg_out_state_tuition=mean(out.of.state.tuition), Avg_int_state_tuition=mean(in.state.tuition), mean_PHD_fac=mean(X..fac..w.PHD), mean_stud_fac_ratio=mean(stud..fac..ratio), mean_grad_rate=mean(Graduation.rate), priv_count = sum(Public..1...Private..2. == 2), pub_count = sum(Public..1...Private..2. == 1))
+head(Stat_States)
+```
+***
+In the tables, I have listed the clustered data according to Public and private universities.
+```{r}
+#Summary Statistics for Private Universities
+
+Stat_Private <- Universities_FR %>% 
+    filter(Public..1...Private..2. == 2) %>%
+    group_by( cluster_index_3 ) %>%
+    summarise( Univ_InState_Max_Fee=Universities_FR[which.max(in.state.tuition),1],Univ_OutState_Max_Fee=Universities_FR[which.max(out.of.state.tuition),1],low_accept_rate=Universities_FR[which.min(X..appl..accepted),1],Acceptance_rate = sum(X..appl..accepted)/ sum(X..appli..rec.d), Avg_out_state_tuition=mean(out.of.state.tuition), Avg_int_state_tuition=mean(in.state.tuition), mean_PHD_fac=mean(X..fac..w.PHD), mean_stud_fac_ratio=mean(stud..fac..ratio), mean_grad_rate=mean(Graduation.rate))
+head(Stat_Private)
+```
+
+```{r}
+#Summary Statistics for Public Universities
+
+Stat_Public <- Universities_FR %>% 
+    filter(Public..1...Private..2. == 1) %>%
+    group_by( cluster_index_3 ) %>%
+    summarise(Univ_InState_Max_Fee=Universities_FR[which.max(in.state.tuition),1],Univ_OutState_Max_Fee=Universities_FR[which.max(out.of.state.tuition),1],low_accept_rate=Universities_FR[which.min(X..appl..accepted),1], Acceptance_rate = sum(X..appl..accepted)/ sum(X..appli..rec.d), Avg_out_state_tuition=mean(out.of.state.tuition), Avg_int_state_tuition=mean(in.state.tuition), mean_PHD_fac=mean(X..fac..w.PHD), mean_stud_fac_ratio=mean(stud..fac..ratio), mean_grad_rate=mean(Graduation.rate))
+head(Stat_Public)
+```
+
+d.From the Dataframe, we can infer that the cluster3 has greater data points compared to other clusters. cluster 1 has highest public universities as opposed to other universities in clusters. The cluster2 has greater private universities which also explain the rational behind high in.state and out.of.state tuition fee. The mean PHD faculty ratio is lowest for cluster 1. The mean room, board, and fees is lowest for cluster 1. The average in state tuition is lowest for cluster 3 and same for out of state tuition. The acceptance rate is lowest for cluster 2.
+
+```{r}
+#Plotting Clusters with state and public/private variables
+library(ggplot2)
+ggplot(Universities_FR,aes(x = cluster_index_3, y = State, color =Public..1...Private..2.)) +  
+  geom_point()
+```
+
+e. Some additional information that could help explain the data would be the state of the school, or the operating budget of the university, or the amount of academic endowments of the university.
+
+***
+
+F.	Consider Tufts University, which is missing some information. Compute the Euclidean distance of this record from each of the clusters that you found above
+
+```{r}
+#centers for clusters
+k3 <- kmeans(Univ_Countinuous, centers = 3, nstart = 25)
+
+#f. Isolating the data to Tufts University
+library(dplyr)
+library(stats)
+
+Tufts_University <- filter(Universities, College.Name == "Tufts University")
+#Euclidean distance of this record from Cluster 1
+dist(rbind(Tufts_University[, -c(1, 2, 3, 10)], k3$centers[1,]))
+#Euclidean distance of this record from Cluster 2
+dist(rbind(Tufts_University[, -c(1, 2, 3, 10)], k3$centers[2,]))
+#Euclidean distance of this record from Cluster 3
+dist(rbind(Tufts_University[, -c(1, 2, 3, 10)], k3$centers[3,]))
+```
+The Eucledian Distance from Tufts to Cluster1 is smaller i.e.,29816.76 compared to cluster2 and cluster3. Hence, Cluster1 is Closest to Tufts.
+
+
+```{r}
+#Impute the missing values for Tufts by taking the average of the cluster on those measurements. 
+cluster1 <- filter(Universities_FR, cluster_index_3 == 1)
+cluster1_Avg <- mean(cluster1[,c(10)])
+Tufts_University[, c(10)] <- cluster1_Avg
+Tufts_University[, c(10)]
+```
+
+The Missing Value in tufts is 2260.721
+
+
+
+
