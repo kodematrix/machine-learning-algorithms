@@ -1,0 +1,310 @@
+---
+title: "Validation Accuracy Analysis on imdb movie review data"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+```{r, results='hide'}
+library(keras)
+
+imdb <- dataset_imdb(num_words = 10000)
+c(c(train_data, train_labels), c(test_data, test_labels)) %<-% imdb
+
+#Padding list of integers to tensors and dividing the training set to training and validation sets
+
+vectorize_sequences <- function(sequences, dimension = 10000) {
+  # Create an all-zero matrix of shape (len(sequences), dimension)
+  results <- matrix(0, nrow = length(sequences), ncol = dimension)
+  for (i in 1:length(sequences))
+    # Sets specific indices of results[i] to 1s
+    results[i, sequences[[i]]] <- 1
+  results
+}
+
+# Our vectorized training data
+x_train <- vectorize_sequences(train_data)
+# Our vectorized test data
+x_test <- vectorize_sequences(test_data)
+
+#We should also vectorize our labels, which is straightforward:
+# Our vectorized labels
+
+y_train <- as.numeric(train_labels)
+y_test <- as.numeric(test_labels)
+
+#In order to monitor during training the accuracy of the model on data that it has never seen before, we will create a "validation set" by setting apart 10,000 samples from the original training data:
+
+val_indices <- 1:10000
+
+x_val <- x_train[val_indices,]
+partial_x_train <- x_train[-val_indices,]
+
+y_val <- y_train[val_indices]
+partial_y_train <- y_train[-val_indices]
+
+```
+
+#Implementing text classification using keras with simple network
+```{r}
+library(keras)
+
+model <- keras_model_sequential() %>% 
+  layer_dense(units = 16, activation = "relu", input_shape = c(10000)) %>% 
+  layer_dense(units = 16, activation = "relu") %>% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+
+history <- model %>% fit(
+  partial_x_train,
+  partial_y_train,
+  epochs = 20,
+  batch_size = 512,
+  validation_data = list(x_val, y_val)
+)
+
+History<-data.frame(history$metrics)
+plot(history)
+```
+
+
+For the IMDB example that we discussed in class, do the following:
+
+	1. Try using one or three hidden layers, and see how doing so affects validation and test accuracy.
+	
+```{r}
+library(keras)
+
+model_Layers <- keras_model_sequential() %>% 
+  layer_dense(units = 16, activation = "relu", input_shape = c(10000)) %>%  
+  layer_dense(units = 16, activation = "relu") %>% 
+  layer_dense(units = 16, activation = "relu") %>%
+  layer_dense(units = 16, activation = "relu") %>%
+  layer_dense(units = 1, activation = "sigmoid")
+
+model_Layers %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+
+history_Layers <- model_Layers %>% fit(
+  partial_x_train,
+  partial_y_train,
+  epochs = 20,
+  batch_size = 512,
+  validation_data = list(x_val, y_val)
+)
+Hist_Layers<-data.frame(history_Layers$metrics)
+plot(history_Layers)
+```
+
+
+	2. Try using layers with more hidden units or fewer hidden units: 32 units, 64 units, and so on.
+```{r}
+library(keras)
+
+model_32Units <- keras_model_sequential() %>% 
+  layer_dense(units = 16, activation = "relu", input_shape = c(10000)) %>% 
+  layer_dense(units = 32, activation = "relu") %>% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+model_32Units %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+
+history_32Units <- model_32Units %>% fit(
+  partial_x_train,
+  partial_y_train,
+  epochs = 20,
+  batch_size = 512 ,
+  validation_data = list(x_val, y_val)
+)
+Hist_32Units<-data.frame(history_32Units$metrics)
+plot(history_32Units)
+```
+
+
+```{r}
+
+library(keras)
+
+model_64Units <- keras_model_sequential() %>% 
+  layer_dense(units = 16, activation = "relu", input_shape = c(10000)) %>% 
+  layer_dense(units = 64, activation = "relu") %>%
+  layer_dense(units = 64, activation = "relu") %>%
+  layer_dense(units = 1, activation = "sigmoid")
+
+model_64Units %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+
+history_64Units <- model_64Units %>% fit(
+  partial_x_train,
+  partial_y_train,
+  epochs = 20,
+  batch_size = 512 ,
+  validation_data = list(x_val, y_val)
+)
+Hist_64Units<-data.frame(history_64Units$metrics)
+plot(history_64Units)
+```
+
+
+	3. Try using the mse loss function instead of binary_crossentropy. 
+```{r}
+library(keras)
+
+model_LF <- keras_model_sequential() %>% 
+  layer_dense(units = 16, activation = "relu", input_shape = c(10000)) %>% 
+  layer_dense(units = 16, activation = "relu") %>% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+model_LF %>% compile(
+  optimizer = "rmsprop",
+  loss = "mse",
+  metrics = c("accuracy")
+)
+
+history_LF <- model_LF %>% fit(
+  partial_x_train,
+  partial_y_train,
+  epochs = 20,
+  batch_size = 512,
+  validation_data = list(x_val, y_val)
+)
+Hist_LF<-data.frame(history_LF$metrics)
+plot(history_LF)
+```
+	
+	4. Try using the tanh activation (an activation that was popular in the early days of neural networks) instead of relu.
+```{r}
+library(keras)
+
+model_AF <- keras_model_sequential() %>% 
+  layer_dense(units = 16, activation = "tanh", input_shape = c(10000)) %>% 
+  layer_dense(units = 16, activation = "tanh") %>% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+model_AF %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+
+history_AF <- model_AF %>% fit(
+  partial_x_train,
+  partial_y_train,
+  epochs = 20,
+  batch_size = 512,
+  validation_data = list(x_val, y_val)
+)
+Hist_AF<-data.frame(history_AF$metrics)
+plot(history_AF)
+```
+	
+	5. Use any technique we studied in class, and these include regularization, dropout, etc., to get your model to perform better on validation.
+	
+	##With Dropout Layer
+```{r}
+model_Drop <- keras_model_sequential() %>% 
+  layer_dense(units = 16, activation = "relu", input_shape= c(10000)) %>% layer_dropout(rate = 0.15) %>%
+  layer_dense(units = 16, activation = "relu") %>% layer_dropout(rate = 0.15) %>% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+model_Drop %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+
+history_Drop <- model_Drop %>% fit(
+  partial_x_train,
+  partial_y_train,
+  epochs = 20,
+  batch_size = 512,
+  validation_data = list(x_val, y_val)
+)
+Hist_Drop<-data.frame(history_Drop$metrics)
+plot(history_Drop)
+```
+	
+
+
+	##With Ridge Regression as penalty
+```{r}
+model_Ridge <- keras_model_sequential() %>% 
+  layer_dense(units = 16,kernel_regularizer = regularizer_l2(0.00005),activation = "relu", input_shape= c(10000)) %>% 
+  layer_dense(units = 16,kernel_regularizer = regularizer_l2(0.00005), activation = "relu") %>%
+  #layer_dense(units = 8,kernel_regularizer = regularizer_l2(0.001), activation = "relu") %>%
+  layer_dense(units = 1, activation = "sigmoid")
+
+model_Ridge %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+
+history_Ridge <- model_Ridge %>% fit(
+  partial_x_train,
+  partial_y_train,
+  epochs = 20,
+  batch_size = 512,
+  validation_data = list(x_val, y_val)
+)
+Hist_Ridge<-as.data.frame(history_Ridge$metrics)
+plot(history_Ridge)
+```
+
+
+
+	##With Lasso as penalty
+```{r}
+model_Lasso <- keras_model_sequential() %>% 
+  layer_dense(units = 16,kernel_regularizer = regularizer_l1(0.0001),activation = "relu", input_shape= c(10000)) %>% 
+  layer_dense(units = 16,kernel_regularizer = regularizer_l1(0.0001), activation = "relu") %>%
+  #layer_dense(units = 8,kernel_regularizer = regularizer_l1(0.0001), activation = "relu") %>%
+  layer_dense(units = 1, activation = "sigmoid")
+
+model_Lasso %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+
+history_Lasso <- model_Lasso %>% fit(
+  partial_x_train,
+  partial_y_train,
+  epochs = 20,
+  batch_size = 512,
+  validation_data = list(x_val, y_val)
+)
+Hist_Lasso<-data.frame(history_Lasso$metrics)
+plot(history_Lasso)
+```
+
+#Data_Visualization	
+```{r}
+
+Models_Val_Accuracy<-data.frame(epochs=1:10,History[1:10,4],Hist_32Units[1:10,4],Hist_64Units[1:10,4],Hist_Layers[1:10,4],Hist_AF[1:10,4],Hist_LF[1:10,4],Hist_Drop[1:10,4],Hist_Ridge[1:10,4],Hist_Lasso[1:10,4])
+
+colnames(Models_Val_Accuracy)<-c("epochs","Model Val Acc","Units 32","Units 64","Hidden Layers 3","Tanh AF","MSE LF","DrouOut","Ridge regularizer","Lasso regularizer")
+
+library(data.table)
+Model_ValAcc_transpose <- transpose(Models_Val_Accuracy)
+rownames(Model_ValAcc_transpose)<-colnames(Models_Val_Accuracy)
+colnames(Model_ValAcc_transpose)<-rownames(Models_Val_Accuracy)
+
+library(dplyr)
+Max_Model_Val_Accuracy<-summarise_each(Models_Val_Accuracy, funs(max))
+```
+
